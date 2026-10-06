@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt, retrieve or fine tune? A practical guide to using LLMs efficiently | Anjali Parihar</title>
+  <meta name="description" content="When to use prompting, RAG, LoRA fine tuning, small models or no LLM at all, and how to save money on low priority work.">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Prompt, retrieve or fine tune? A practical guide to using LLMs efficiently">
+  <meta property="og:description" content="When to use prompting, RAG, LoRA fine tuning, small models or no LLM at all, and how to save money on low priority work.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f6e8c'/><text x='16' y='22' font-family='Arial' font-size='15' font-weight='700' fill='white' text-anchor='middle'>AP</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .table-wrap { overflow-x: auto; margin: 0 0 24px; }
+    .table-wrap table { border-collapse: collapse; width: 100%; min-width: 560px; font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+    .table-wrap th, .table-wrap td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .table-wrap th { background: var(--surface); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Anjali Parihar</a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../index.html#projects">Projects</a>
+      <a href="index.html" aria-current="page">Blog</a>
+      <a href="../index.html#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="article">
+  <div class="wrap">
+    <a class="back" href="index.html">All posts</a>
+
+    <h1>Prompt, retrieve or fine tune? A practical guide to using LLMs efficiently</h1>
+    <p class="byline">Anjali Parihar, <time datetime="2026-10-06">6 October 2026</time></p>
+
+    <div class="prose">
+      <p>A question I keep seeing in AI discussions is some version of this: "Should we fine tune a model for this?" Usually the honest answer is "not yet." Fine tuning sounds like the serious, professional option, but it's often the most expensive way to solve a problem that a good prompt or a search step would have solved in an afternoon.</p>
+      <p>So I want to share how I think about it. Not every task needs the biggest model, and not every problem needs training. Efficiency comes from matching the tool to the job.</p>
+
+      <h2>Start with the cheapest thing that could work</h2>
+      <p>I think of LLM customization as a ladder. Each step up costs more time, more money, and more maintenance. You only climb when the step below genuinely isn't enough.</p>
+      <p><strong>Step 1: Prompting.</strong> Clear instructions, a few good examples of what you want, and a defined output format. This costs nothing to change and works surprisingly often. If you haven't tried giving the model three solid examples, you're not ready to fine tune.</p>
+      <p><strong>Step 2: Retrieval augmented generation (RAG).</strong> When the model needs knowledge it doesn't have, like your company's documents, product details, or anything that changes often, you don't teach it. You look the information up and hand it over in the prompt. Updating knowledge is as easy as updating a document.</p>
+      <p><strong>Step 3: Parameter efficient fine tuning.</strong> Techniques like <strong>LoRA</strong> train a small set of extra weights on top of a frozen model, often only a tiny fraction of its parameters. <strong>QLoRA</strong> goes further by loading the base model in a compressed 4 bit format, which makes fine tuning possible on a single GPU. This is where you teach behavior: a style, a format, a narrow skill.</p>
+      <p><strong>Step 4: Full fine tuning.</strong> Updating all of a model's weights. Powerful, but expensive, and rarely necessary unless you're building something truly specialized at large scale.</p>
+
+      <h2>The one rule that saves the most money</h2>
+      <p>Here's the distinction that clears up most confusion:</p>
+      <blockquote>Use RAG to give a model knowledge. Use fine tuning to change its behavior.</blockquote>
+      <p>Fine tuning is a poor way to teach facts. Training bakes knowledge into the weights at a fixed point in time, so when your prices, policies, or products change, the model is out of date and you have to train again. And a model fine tuned on facts can still confidently mix them up. Retrieval keeps facts outside the model, where they're easy to update and easy to check.</p>
+      <p>Fine tuning shines when the problem is <em>how</em> the model responds rather than <em>what</em> it knows. A consistent brand voice. A strict output format your systems depend on. A narrow classification task. Domain language a general model keeps getting wrong.</p>
+
+      <h2>Matching the approach to the use case</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Use case</th><th>Best starting point</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Answering questions over company documents</td><td>RAG</td><td>Knowledge changes, and answers should point to sources</td></tr>
+          <tr><td>Customer support with up to date policies</td><td>RAG plus a good prompt</td><td>Policies change, tone can be set in the prompt</td></tr>
+          <tr><td>Writing in a consistent brand voice</td><td>LoRA fine tuning</td><td>Style is behavior, and hard to fully capture in a prompt</td></tr>
+          <tr><td>Extracting fields from thousands of documents daily</td><td>Fine tuned small model</td><td>High volume makes a small, cheap model worth training</td></tr>
+          <tr><td>Classifying support tickets</td><td>Small model or classical ML</td><td>Simple labels rarely need a large model</td></tr>
+          <tr><td>Rare, complex reasoning tasks</td><td>Large model with careful prompting</td><td>Low volume, so training cost isn't worth it</td></tr>
+          <tr><td>Exact calculations and lookups</td><td>No LLM: rules, SQL, or code</td><td>Deterministic tasks need deterministic tools</td></tr>
+        </tbody>
+      </table></div>
+      <p>That last row matters more than people think. Coming from a data background, I've seen how tempting it is to throw an LLM at everything. But if a SQL query or a simple rule can answer the question exactly, it will be faster, cheaper, and correct every single time. An LLM is a great tool for language and judgment. It's an expensive calculator.</p>
+
+      <h2>Efficiency for low priority work</h2>
+      <p>Not every task is urgent, and that's a huge opportunity to save money.</p>
+      <p><strong>Route by difficulty.</strong> Send easy, routine requests to a small, fast model and only escalate hard ones to a large model. Many requests in real systems are simple, so a basic router can cut costs dramatically without users noticing any difference.</p>
+      <p><strong>Batch what can wait.</strong> Nightly summaries, report generation, tagging old documents: none of this needs an instant answer. Many providers offer batch processing at a discount, and you can run it when systems are quiet.</p>
+      <p><strong>Cache repeated work.</strong> If the same long instructions or documents appear in many requests, prompt caching avoids paying to process them again and again.</p>
+      <p><strong>Distill for scale.</strong> If a large model performs a task well and you need to run it millions of times, you can use its outputs to train a smaller model. This is called <strong>knowledge distillation</strong>: the big model teaches, the small model does the daily work.</p>
+      <p><strong>Compress for serving.</strong> <strong>Quantization</strong> stores a model's numbers in fewer bits, so it needs less memory and runs faster, usually with only a small loss in quality. It's how capable models now run on a single GPU, and sometimes on a laptop.</p>
+
+      <h2>Before you fine tune, check your data</h2>
+      <p>If you do decide to fine tune, remember that training doesn't just learn from your data, it amplifies it. During training, backpropagation adjusts the model to match your examples as closely as possible, including their mistakes. Inconsistent labels, duplicated examples, and outdated information all get learned.</p>
+      <p>I wrote about this in more detail in my post on <a href="agent-memory-data-quality.html">data quality for agent memory</a>, but the short version is: a few hundred clean, consistent, carefully reviewed examples often beat thousands of messy ones. Data quality is still the cheapest place to improve a model.</p>
+
+      <h2>A simple decision checklist</h2>
+      <p>When a new use case comes up, I ask these questions in order:</p>
+      <ol>
+        <li><strong>Can rules, SQL, or regular code solve it exactly?</strong> Then don't use an LLM.</li>
+        <li><strong>Does a well written prompt with a few examples work?</strong> Then stop there.</li>
+        <li><strong>Does the model lack knowledge, or does that knowledge change often?</strong> Add retrieval.</li>
+        <li><strong>Is the problem the model's behavior, style, or format, even with good prompts?</strong> Consider LoRA fine tuning.</li>
+        <li><strong>Will this run at very high volume?</strong> Consider a smaller fine tuned or distilled model.</li>
+        <li><strong>Is the task low priority?</strong> Batch it, route it to a small model, or cache it.</li>
+      </ol>
+
+      <h2>The real meaning of efficiency</h2>
+      <p>The most efficient AI system isn't the one with the most advanced technique. It's the one where every part earns its place. A prompt where a prompt is enough. Retrieval where knowledge changes. Training only where behavior truly needs to change. And plain old code wherever the answer has to be exactly right.</p>
+      <p>Choosing the simplest tool that works isn't a lack of ambition. It's what makes AI something a business can actually afford to run.</p>
+      <p><em>How does your team decide when to fine tune? I'd love to hear what's worked for you.</em></p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">© <span class="year"></span> Anjali Parihar</div>
+</footer>
+
+<script src="../main.js"></script>
+</body>
+</html>

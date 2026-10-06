@@ -17,6 +17,12 @@
 
 window.POSTS = [
   {
+    title: "Prompt, retrieve or fine tune? A practical guide to using LLMs efficiently",
+    date: "2026-10-06",
+    summary: "When to use prompting, RAG, LoRA fine tuning, small models or no LLM at all, and how to save money on low priority work.",
+    file: "llm-efficiency-guide.html"
+  },
+  {
     title: "Data quality for agent memory: what happens when your AI remembers the wrong thing?",
     date: "2026-10-05",
     summary: "Agent memory is just data, and it fails the same way data always has. Why memory poisoning, stale facts and unchecked training data make agents unreliable, and how human checks fix it.",
