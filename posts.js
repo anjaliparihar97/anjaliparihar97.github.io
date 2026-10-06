@@ -17,6 +17,12 @@
 
 window.POSTS = [
   {
+    title: "Data quality for agent memory: what happens when your AI remembers the wrong thing?",
+    date: "2026-10-05",
+    summary: "Agent memory is just data, and it fails the same way data always has. Why memory poisoning, stale facts and unchecked training data make agents unreliable, and how human checks fix it.",
+    file: "agent-memory-data-quality.html"
+  },
+  {
     title: "Hello, and why I'm starting this blog",
     date: "2026-10-05",
     summary: "What I plan to write about here: industrial data, practical AI and what I learn by building things.",
