@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>I measured how much GPU memory an LLM really needs. Here's what surprised me. | Anjali Parihar</title>
+  <meta name="description" content="Experiments on a free NVIDIA T4: quantization saved memory but cost speed, long prompts were the real memory risk, batching was the best optimization, and in training the weights were only a fifth of the memory.">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="I measured how much GPU memory an LLM really needs. Here's what surprised me.">
+  <meta property="og:description" content="Experiments on a free NVIDIA T4: quantization saved memory but cost speed, long prompts were the real memory risk, batching was the best optimization, and in training the weights were only a fifth of the memory.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f6e8c'/><text x='16' y='22' font-family='Arial' font-size='15' font-weight='700' fill='white' text-anchor='middle'>AP</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .table-wrap { overflow-x: auto; margin: 0 0 24px; }
+    .table-wrap table { border-collapse: collapse; width: 100%; min-width: 480px; font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+    .table-wrap th, .table-wrap td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+    .table-wrap th { background: var(--surface); font-weight: 600; }
+    .prose figure { margin: 8px 0 28px; }
+    .prose figure img { margin: 0; border: 1px solid var(--line); }
+    .prose figcaption { font-family: var(--sans); font-size: 14px; color: var(--muted); margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Anjali Parihar</a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../index.html#projects">Projects</a>
+      <a href="index.html" aria-current="page">Blog</a>
+      <a href="../index.html#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="article">
+  <div class="wrap">
+    <a class="back" href="index.html">All posts</a>
+
+    <h1>I measured how much GPU memory an LLM really needs. Here's what surprised me.</h1>
+    <p class="byline">Anjali Parihar, <time datetime="2026-10-25">25 October 2026</time></p>
+
+    <div class="prose">
+      <p>Everyone says the same things about running language models: "quantize it to save memory," "use LoRA to fine-tune cheaply." I believed all of it. But I realized I had never actually measured any of it myself.</p>
+      <p>So I ran my own experiments on a free NVIDIA T4 GPU in Google Colab, with small open models from the Qwen2.5 family. Before every experiment I predicted the memory from the number of parameters, then compared my prediction with what really happened. Some results matched the theory perfectly. Others surprised me.</p>
+
+      <h2>Surprise 1: smaller was not faster</h2>
+      <p>I loaded the same 1.5 billion parameter model in three precisions and asked it the same five questions.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Precision</th><th>Weight memory</th><th>Speed</th><th>Answers correct</th></tr></thead>
+        <tbody>
+          <tr><td>16-bit</td><td>2.88 GB</td><td>19 tokens/sec</td><td>Yes</td></tr>
+          <tr><td>8-bit</td><td>1.67 GB</td><td>1.3 tokens/sec</td><td>Yes</td></tr>
+          <tr><td>4-bit</td><td>1.14 GB</td><td>3.5 tokens/sec</td><td>Yes</td></tr>
+        </tbody>
+      </table></div>
+      <figure>
+        <img src="../assets/gpu/quantization_memory.png" alt="Bar chart: weight memory of 2.88 GB in 16-bit, 1.67 GB in 8-bit and 1.14 GB in 4-bit">
+        <figcaption>Weight memory by precision on a T4 GPU.</figcaption>
+      </figure>
+      <p>The memory savings were exactly what you'd expect: 4-bit used about 60% less memory, and all three versions answered my test questions correctly. But 4-bit generated text about five times slower than 16-bit, and 8-bit was about fifteen times slower.</p>
+      <p>The reason is that compressed weights have to be converted back into 16-bit numbers during every calculation. That extra work only pays off when memory is the real problem. For a small model that already fits comfortably, it's just overhead. My takeaway: <strong>quantization saves memory, but it doesn't automatically make a model faster.</strong></p>
+      <p>There was a second, smaller lesson. My simple prediction said the 8-bit model would need 1.43 GB, but it needed 1.67 GB. The reason is that not every layer gets compressed: the embedding layer, the big table that turns tokens into numbers, stays in 16-bit. In this model it's about 15% of all parameters. Once I included that in my calculation, the prediction was within a few percent.</p>
+
+      <h2>Surprise 2: long prompts were the real memory risk</h2>
+      <p>Next, I kept the model the same and made the prompt longer and longer.</p>
+      <figure>
+        <img src="../assets/gpu/kv_cache_growth.png" alt="Line chart: peak GPU memory rising from about 1.2 GB at 242 tokens to 7.6 GB at 7,513 tokens">
+        <figcaption>Peak memory grows faster than the prompt length.</figcaption>
+      </figure>
+      <p>A prompt of about 7,500 tokens needed 6.4 GB on top of a model whose weights took only 1.1 GB. And memory grew faster than the prompt: doubling the prompt from about 3,800 to 7,500 tokens almost quadrupled the extra memory.</p>
+      <p>At first I assumed this was all the KV cache, the model's memory of tokens it has already read. But the KV cache grows in a straight line with the prompt, and it's small for this model. Growth faster than that points to the temporary working memory needed while processing a long prompt, especially the attention calculation, which grows roughly with the square of the length. That's why techniques like FlashAttention, which avoid storing huge attention tables, matter so much for long contexts.</p>
+
+      <h2>Surprise 3: batching was the best optimization</h2>
+      <figure>
+        <img src="../assets/gpu/batching_throughput.png" alt="Bar chart: throughput rising from 9.3 tokens per second at batch size 1 to 70.8 at batch size 16">
+        <figcaption>Throughput by batch size.</figcaption>
+      </figure>
+      <p>Sending 16 prompts at once instead of one at a time raised throughput from 9.3 to 70.8 tokens per second, about 7.6 times more, while memory went up by only about 8%. A GPU is built to do many calculations in parallel, so processing one request at a time leaves most of it idle. This is the main idea behind production inference servers.</p>
+
+      <h2>Training: the weights are only a small part</h2>
+      <p>The second half of the project looked at training. I ran one training step on a 494 million parameter model and measured the memory after each phase.</p>
+      <figure>
+        <img src="../assets/gpu/anatomy_training_step.png" alt="Bar chart of memory after each phase of a training step, with a peak of 9.27 GB">
+        <figcaption>Memory after each phase of one training step.</figcaption>
+      </figure>
+      <p>In full 32-bit training with the Adam optimizer, theory says every parameter costs about 16 bytes: 4 for the weight, 4 for its gradient, and 8 for Adam's two running averages. My measurements matched almost exactly:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Part</th><th>Predicted</th><th>Measured</th></tr></thead>
+        <tbody>
+          <tr><td>Weights</td><td>1.84 GB</td><td>1.84 GB</td></tr>
+          <tr><td>Gradients</td><td>1.84 GB</td><td>1.87 GB</td></tr>
+          <tr><td>Adam optimizer states</td><td>3.68 GB</td><td>3.71 GB</td></tr>
+        </tbody>
+      </table></div>
+      <p>What the simple formula leaves out is activations, the intermediate results the model saves during the forward pass so it can compute gradients afterwards. They added 4.2 GB, more than twice the size of the weights, for only about a thousand tokens. The step peaked at 9.27 GB, which means <strong>the weights were only about a fifth of the memory needed for training</strong>.</p>
+      <p>That one chart explains why fine-tuning even a small model can run out of memory on a GPU where running it is easy, and why techniques like 8-bit optimizers, gradient checkpointing and LoRA exist.</p>
+
+      <h2>What I'd do in practice</h2>
+      <ul>
+        <li><strong>For a small model that fits:</strong> keep it in 16-bit and use batching. That gave the best speed by far.</li>
+        <li><strong>For a model that doesn't fit:</strong> that's when quantization earns its place.</li>
+        <li><strong>Always limit prompt length</strong> in production, because long prompts were the biggest memory risk.</li>
+        <li><strong>For fine-tuning:</strong> plan for several times the memory of the weights, or use LoRA and QLoRA to avoid most of it.</li>
+      </ul>
+
+      <h2>What I learned about learning</h2>
+      <p>The most valuable habit from this project was predicting before measuring. When the prediction matched, I knew I understood the system. When it didn't, like the embedding layer or the attention memory, that gap was exactly where I learned something new.</p>
+      <p>All the notebooks, results and charts are on GitHub, and you can run everything yourself for free in Google Colab: <a href="https://github.com/anjaliparihar97/llm-gpu-memory" target="_blank" rel="noopener">llm-gpu-memory</a>.</p>
+      <p><em>If you've measured GPU memory on other hardware, I'd love to compare notes. Feel free to reach out.</em></p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">© <span class="year"></span> Anjali Parihar</div>
+</footer>
+
+<script src="../main.js"></script>
+</body>
+</html>

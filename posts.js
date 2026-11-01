@@ -17,6 +17,12 @@
 
 window.POSTS = [
   {
+    title: "I measured how much GPU memory an LLM really needs. Here's what surprised me.",
+    date: "2026-10-25",
+    summary: "Experiments on a free NVIDIA T4: quantization saved memory but cost speed, long prompts were the real memory risk, batching was the best optimization, and in training the weights were only a fifth of the memory.",
+    file: "gpu-memory-experiments.html"
+  },
+  {
     title: "Prompt, retrieve or fine tune? A practical guide to using LLMs efficiently",
     date: "2026-10-06",
     summary: "When to use prompting, RAG, LoRA fine tuning, small models or no LLM at all, and how to save money on low priority work.",
